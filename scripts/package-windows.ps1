@@ -22,13 +22,13 @@ foreach ($format in @('VST3', 'CLAP')) {
     Copy-Item -LiteralPath $plugin -Destination $destination -Recurse -Force
 }
 
-foreach ($file in @('README.md', 'LICENSE.txt', 'THIRD_PARTY_NOTICES.md', 'licenses')) {
+foreach ($file in @('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'licenses')) {
     Copy-Item -LiteralPath (Join-Path $projectRoot $file) -Destination $stage -Recurse -Force
 }
 
 $source = Join-Path $stage 'Source'
 New-Item -ItemType Directory -Force -Path $source | Out-Null
-foreach ($file in @('CMakeLists.txt', '.gitignore', '.gitattributes', 'GLOSSARY.md', 'README.md', 'LICENSE.txt', 'THIRD_PARTY_NOTICES.md', 'src', 'tests', 'docs', 'scripts', 'licenses', '.github')) {
+foreach ($file in @('CMakeLists.txt', '.gitignore', '.gitattributes', 'GLOSSARY.md', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'src', 'tests', 'docs', 'scripts', 'licenses', '.github')) {
     Copy-Item -LiteralPath (Join-Path $projectRoot $file) -Destination $source -Recurse -Force
 }
 
