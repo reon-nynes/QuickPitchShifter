@@ -1,0 +1,145 @@
+name: Build and release Quick Pitch Shifter
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            platform: windows-x64
+          - os: macos-15
+            platform: macos-universal
+          - os: ubuntu-22.04
+            platform: linux-x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build zip rsync pkg-config \
+            libasound2-dev libjack-jackd2-dev libfreetype-dev libfontconfig1-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev \
+            libxinerama-dev libxrandr-dev libxrender-dev libxi-dev \
+            libglu1-mesa-dev mesa-common-dev libegl-dev
+
+      - name: Configure Windows
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DQPS_BUILD_TESTS=ON
+
+      - name: Configure macOS
+        if: runner.os == 'macOS'
+        run: >-
+          cmake -S . -B build -G Xcode
+          "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+          -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO
+
+      - name: Configure Linux
+        if: runner.os == 'Linux'
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Windows
+        if: runner.os == 'Windows'
+        run: >-
+          cmake --build build --config Release --parallel 4
+          --target QuickPitchShifter_VST3 QuickPitchShifter_CLAP QuickPitchShifterTests
+
+      - name: Verify Windows DSP and processor
+        if: runner.os == 'Windows'
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Validate Windows VST3 in pluginval
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build/tools | Out-Null
+          Invoke-WebRequest -Uri 'https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_Windows.zip' -OutFile build/tools/pluginval.zip
+          Expand-Archive -LiteralPath build/tools/pluginval.zip -DestinationPath build/tools/pluginval
+          ./scripts/validate-windows.ps1 -PluginvalPath build/tools/pluginval/pluginval.exe
+
+      - name: Build Linux
+        if: runner.os == 'Linux'
+        run: >-
+          cmake --build build --config Release --parallel 4
+          --target QuickPitchShifter_VST3 QuickPitchShifter_CLAP
+
+      - name: Build macOS and embed AUv3
+        if: runner.os == 'macOS'
+        run: >-
+          cmake --build build --config Release --parallel 4
+          --target QuickPitchShifter_VST3 QuickPitchShifter_CLAP QuickPitchShifter_Standalone
+
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/package-windows.ps1
+
+      - name: Package macOS and Linux
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          root="build/QuickPitchShifter_artefacts/Release"
+          stage="dist/$PLATFORM"
+          test -d "$root/VST3/Quick Pitch Shifter.vst3"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            test -f "$root/CLAP/Quick Pitch Shifter.clap/Contents/MacOS/Quick Pitch Shifter"
+          else
+            test -f "$root/CLAP/Quick Pitch Shifter.clap"
+          fi
+          mkdir -p "$stage/VST3" "$stage/CLAP" "$stage/Source"
+          rsync -a "$root/VST3/" "$stage/VST3/"
+          rsync -a "$root/CLAP/" "$stage/CLAP/"
+          cp README.md LICENSE.txt THIRD_PARTY_NOTICES.md "$stage/"
+          cp -R licenses "$stage/"
+          cp CMakeLists.txt .gitignore .gitattributes GLOSSARY.md README.md LICENSE.txt THIRD_PARTY_NOTICES.md "$stage/Source/"
+          cp -R src tests docs scripts licenses .github "$stage/Source/"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            app="$root/Standalone/Quick Pitch Shifter.app"
+            test -d "$app"
+            find "$app/Contents/PlugIns" -name '*.appex' -print -quit | grep -q .
+            mkdir -p "$stage/AUv3"
+            rsync -a "$app" "$stage/AUv3/"
+            ditto -c -k --sequesterRsrc --keepParent "$stage" "dist/QuickPitchShifter-$PLATFORM.zip"
+          else
+            (cd "$stage" && zip -qry "../QuickPitchShifter-$PLATFORM.zip" .)
+          fi
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: dist/QuickPitchShifter-${{ matrix.platform }}.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish tagged release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: packages/*.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
