@@ -85,4 +85,4 @@ cmake --build build --config Release --parallel 4 --target QuickPitchShifter_VST
 
 ## License and dependencies
 
-Project-owned code is licensed under **GPL-3.0**; see `LICENSE.txt`. JUCE 8 modules are separately licensed under **AGPL-3.0 or a commercial JUCE license**; distributing binaries containing those modules must satisfy the applicable JUCE terms as well. Third-party license texts and pinned source references are in `licenses/` and `THIRD_PARTY_NOTICES.md`. The implementation is new; the ForceSimpleDelay repository serves as a CMake/JUCE and workflow reference.
+Project-owned code is licensed under **GPL-3.0**; see `LICENSE`. JUCE 8 modules are separately licensed under **AGPL-3.0 or a commercial JUCE license**; distributing binaries containing those modules must satisfy the applicable JUCE terms as well. Third-party license texts and pinned source references are in `licenses/` and `THIRD_PARTY_NOTICES.md`. The implementation is new; the ForceSimpleDelay repository serves as a CMake/JUCE and workflow reference.

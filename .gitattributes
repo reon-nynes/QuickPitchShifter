@@ -1,0 +1,4 @@
+* text=auto eol=lf
+# Preserve upstream license texts verbatim.
+/licenses/** -text -whitespace
+/LICENSE -text -whitespace

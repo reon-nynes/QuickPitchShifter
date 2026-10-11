@@ -104,9 +104,9 @@ jobs:
           mkdir -p "$stage/VST3" "$stage/CLAP" "$stage/Source"
           rsync -a "$root/VST3/" "$stage/VST3/"
           rsync -a "$root/CLAP/" "$stage/CLAP/"
-          cp README.md LICENSE.txt THIRD_PARTY_NOTICES.md "$stage/"
+          cp README.md LICENSE THIRD_PARTY_NOTICES.md "$stage/"
           cp -R licenses "$stage/"
-          cp CMakeLists.txt .gitignore .gitattributes GLOSSARY.md README.md LICENSE.txt THIRD_PARTY_NOTICES.md "$stage/Source/"
+          cp CMakeLists.txt .gitignore .gitattributes GLOSSARY.md README.md LICENSE THIRD_PARTY_NOTICES.md "$stage/Source/"
           cp -R src tests docs scripts licenses .github "$stage/Source/"
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             app="$root/Standalone/Quick Pitch Shifter.app"
