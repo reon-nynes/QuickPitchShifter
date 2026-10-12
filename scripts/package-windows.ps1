@@ -28,7 +28,7 @@ foreach ($file in @('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'licenses'
 
 $source = Join-Path $stage 'Source'
 New-Item -ItemType Directory -Force -Path $source | Out-Null
-foreach ($file in @('CMakeLists.txt', '.gitignore', '.gitattributes', 'GLOSSARY.md', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'src', 'tests', 'docs', 'scripts', 'licenses', '.github')) {
+foreach ($file in @('CMakeLists.txt', '.gitignore', '.gitattributes', 'GLOSSARY.md', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'src', 'tests', 'scripts', 'licenses', '.github')) {
     Copy-Item -LiteralPath (Join-Path $projectRoot $file) -Destination $source -Recurse -Force
 }
 
